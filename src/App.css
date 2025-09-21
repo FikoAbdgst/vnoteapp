@@ -1,0 +1,33 @@
+.rotateY-180 {
+  transform: rotateY(180deg);
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 10px;
+  /* lebar scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+
+  /* transparan */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.6);
+  /* abu-abu dengan transparansi */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.8);
+  /* lebih gelap saat hover */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  /* tipis */
+  scrollbar-color: rgba(128, 128, 128, 0.6) transparent;
+}
