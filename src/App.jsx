@@ -350,15 +350,20 @@ const App = () => {
 
   // Function untuk handle delete category
   const handleDeleteCategory = (categoryId) => {
+    console.log('Delete category called with ID:', categoryId); // Debug log
+
     // Cek apakah ada notes yang menggunakan category ini
     const notesInCategory = notes.filter(note => note.categoryId === categoryId);
+    console.log('Notes in category:', notesInCategory.length); // Debug log
 
     if (notesInCategory.length > 0) {
       // Jika ada notes, tampilkan modal konfirmasi
+      console.log('Showing delete modal'); // Debug log
       setCategoryToDelete(categoryId);
       setShowDeleteCategoryModal(true);
     } else {
       // Jika tidak ada notes, langsung hapus
+      console.log('Deleting category directly'); // Debug log
       deleteCategory(categoryId);
     }
   };
@@ -505,13 +510,15 @@ const App = () => {
                   {category.name} ({notes.filter(n => n.categoryId === category.id).length})
                 </button>
 
-                {/* Delete button - PERBAIKAN DISINI */}
+                {/* Delete button - PERBAIKAN */}
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Mencegah bubble up ke parent button
-                    handleDeleteCategory(category.id); // Pastikan memanggil handleDeleteCategory
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Delete button clicked for category:', category.id); // Debug
+                    handleDeleteCategory(category.id);
                   }}
-                  className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110 ${darkMode
+                  className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110 z-10 ${darkMode
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg'
                     : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
                     }`}
