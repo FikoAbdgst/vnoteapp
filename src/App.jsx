@@ -414,7 +414,7 @@ const App = () => {
                 .replace(/\*(.*?)\*/g, `<em>$1</em>`)
                 .replace(/^## (.*)/g, `<h2 class="text-xl font-bold mb-2 mt-4 ${darkMode ? 'text-white' : 'text-gray-900'}">$1</h2>`)
                 .replace(/^> (.*)/g, `<blockquote class="border-l-4 border-blue-500 pl-4 italic ${darkMode ? 'text-gray-400' : 'text-gray-600'} my-2">$1</blockquote>`)
-                .replace(/^- (.*)/g, `<li class="ml-4">• $1</li>`);
+                .replace(/^- (.*)/g, `<li class="ml-4">$1</li>`);
 
               return (
                 <p key={lineIndex} className="mb-2" dangerouslySetInnerHTML={{ __html: processedLine }} />
