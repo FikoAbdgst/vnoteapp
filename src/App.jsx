@@ -63,8 +63,11 @@ const App = () => {
   const [fontSize, setFontSize] = useState('medium');
   const [fontFamily, setFontFamily] = useState('sans');
   const [isCodeMode, setIsCodeMode] = useState(false);
-  const [showActionModal, setShowActionModal] = useState(null); // New state for action modal
   const [flippedCard, setFlippedCard] = useState(null);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState(null);
+  const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
 
   const gradientColors = [
     'from-blue-400 to-cyan-500',
@@ -146,7 +149,6 @@ const App = () => {
     }
   };
 
-  const deleteNote = (id) => setNotes(prev => prev.filter(note => note.id !== id));
 
   const exportToPDF = (singleNote = null) => {
     const printWindow = window.open('', '_blank');
@@ -346,6 +348,54 @@ const App = () => {
     setShowNoteModal(true);
   };
 
+  // Function untuk handle delete category
+  const handleDeleteCategory = (categoryId) => {
+    // Cek apakah ada notes yang menggunakan category ini
+    const notesInCategory = notes.filter(note => note.categoryId === categoryId);
+
+    if (notesInCategory.length > 0) {
+      // Jika ada notes, tampilkan modal konfirmasi
+      setCategoryToDelete(categoryId);
+      setShowDeleteCategoryModal(true);
+    } else {
+      // Jika tidak ada notes, langsung hapus
+      deleteCategory(categoryId);
+    }
+  };
+
+
+  // Function untuk delete category
+  const deleteCategory = (categoryId) => {
+    // Hapus category
+    setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+
+    // Pindahkan notes yang menggunakan category ini ke "Uncategorized" atau hapus categoryId
+    setNotes(prev => prev.map(note =>
+      note.categoryId === categoryId
+        ? { ...note, categoryId: null }
+        : note
+    ));
+
+    // Reset selected categories filter jika category yang dihapus sedang dipilih
+    setSelectedCategories(prev => prev.filter(id => id !== categoryId));
+
+    // Close modal
+    setShowDeleteCategoryModal(false);
+    setCategoryToDelete(null);
+  };
+
+  const handleDeleteNote = (noteId) => {
+    const noteToDelete = notes.find(note => note.id === noteId);
+    setNoteToDelete(noteToDelete);
+    setShowDeleteNoteModal(true);
+  };
+
+  const deleteNote = (noteId) => {
+    setNotes(prev => prev.filter(note => note.id !== noteId));
+    setShowDeleteNoteModal(false);
+    setNoteToDelete(null);
+  };
+
   const renderContent = (content) => {
     return content.split(/```(\w+)?\n([\s\S]*?)\n```/g).map((part, index) => {
       if (index % 3 === 0) {
@@ -441,19 +491,35 @@ const App = () => {
 
           <div className="flex flex-wrap justify-center gap-3">
             {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => toggleCategory(category.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 ${selectedCategories.includes(category.id)
-                  ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
-                  : darkMode
-                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600'
-                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md'
-                  }`}
-              >
-                <span className={`inline-block w-2 h-2 rounded-full bg-gradient-to-r ${category.color} mr-2`} />
-                {category.name} ({notes.filter(n => n.categoryId === category.id).length})
-              </button>
+              <div key={category.id} className="relative group">
+                <button
+                  onClick={() => toggleCategory(category.id)}
+                  className={`px-4 py-2 pr-8 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 ${selectedCategories.includes(category.id)
+                    ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
+                    : darkMode
+                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600'
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md'
+                    }`}
+                >
+                  <span className={`inline-block w-2 h-2 rounded-full bg-gradient-to-r ${category.color} mr-2`} />
+                  {category.name} ({notes.filter(n => n.categoryId === category.id).length})
+                </button>
+
+                {/* Delete button - PERBAIKAN DISINI */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Mencegah bubble up ke parent button
+                    handleDeleteCategory(category.id); // Pastikan memanggil handleDeleteCategory
+                  }}
+                  className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110 ${darkMode
+                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg'
+                    : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
+                    }`}
+                  title="Hapus kategori"
+                >
+                  ×
+                </button>
+              </div>
             ))}
             <button
               onClick={() => setShowCategoryModal(true)}
@@ -466,6 +532,129 @@ const App = () => {
             </button>
           </div>
         </div>
+        {/* Delete Category Confirmation Modal */}
+        {showDeleteCategoryModal && categoryToDelete && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className={`rounded-3xl p-8 max-w-md w-full transform transition-all duration-300 scale-100 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-2xl`}>
+
+              {/* Warning Icon */}
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  Hapus Kategori?
+                </h3>
+              </div>
+
+              {/* Content */}
+              <div className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {(() => {
+                  const categoryName = categories.find(cat => cat.id === categoryToDelete)?.name;
+                  const notesCount = notes.filter(note => note.categoryId === categoryToDelete).length;
+
+                  return (
+                    <div className="space-y-4">
+                      <p className="text-center">
+                        Anda yakin ingin menghapus kategori <strong>"{categoryName}"</strong>?
+                      </p>
+
+                      {notesCount > 0 && (
+                        <div className={`p-4 rounded-xl ${darkMode ? 'bg-yellow-600/20 border border-yellow-600/30' : 'bg-yellow-50 border border-yellow-200'}`}>
+                          <p className={`text-sm ${darkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>
+                            📋 Terdapat <strong>{notesCount} catatan</strong> dalam kategori ini
+                          </p>
+                          <p className={`text-xs mt-2 ${darkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>
+                            Catatan-catatan tersebut akan dipindah ke status "Tanpa Kategori"
+                          </p>
+                        </div>
+                      )}
+
+                      <p className={`text-sm text-center ${darkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>
+                        Tindakan ini tidak dapat dibatalkan!
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => deleteCategory(categoryToDelete)}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105"
+                >
+                  🗑️ Ya, Hapus Kategori
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteCategoryModal(false);
+                    setCategoryToDelete(null);
+                  }}
+                  className={`flex-1 px-6 py-3 rounded-2xl font-medium transition-all duration-300 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showDeleteNoteModal && noteToDelete && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className={`rounded-3xl p-8 max-w-md w-full transform transition-all duration-300 scale-100 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-2xl`}>
+
+              {/* Warning Icon */}
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">🗑️</div>
+                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  Hapus Catatan?
+                </h3>
+              </div>
+
+              {/* Content */}
+              <div className={`mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <div className="space-y-4">
+                  <p className="text-center">
+                    Anda yakin ingin menghapus catatan <strong>"{noteToDelete.title}"</strong>?
+                  </p>
+
+                  <div className={`p-4 rounded-xl ${darkMode ? 'bg-yellow-600/20 border border-yellow-600/30' : 'bg-yellow-50 border border-yellow-200'}`}>
+                    <p className={`text-sm ${darkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>
+                      📋 Detail Catatan:
+                    </p>
+                    <ul className={`text-xs mt-2 space-y-1 ${darkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>
+                      <li>• Kategori: {getCategoryById(noteToDelete.categoryId)?.name || 'Tanpa Kategori'}</li>
+                      <li>• Dibuat: {noteToDelete.createdAt.toLocaleDateString('id-ID')}</li>
+                      <li>• Panjang: {noteToDelete.content.length} karakter</li>
+                      {noteToDelete.pinned && <li>• Status: Catatan yang di-pin</li>}
+                    </ul>
+                  </div>
+
+                  <p className={`text-sm text-center ${darkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>
+                    Tindakan ini tidak dapat dibatalkan!
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => deleteNote(noteToDelete.id)}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105"
+                >
+                  🗑️ Ya, Hapus Catatan
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteNoteModal(false);
+                    setNoteToDelete(null);
+                  }}
+                  className={`flex-1 px-6 py-3 rounded-2xl font-medium transition-all duration-300 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
@@ -512,7 +701,7 @@ const App = () => {
                 >
                   {/* Front Side of Card */}
                   <div
-                    className={`absolute inset-0 w-full h-full rounded-lg p-6 ${darkMode
+                    className={`absolute inset-0 w-full h-full rounded-3xl p-6 ${darkMode
                       ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-2xl'
                       : 'bg-white border border-gray-200 shadow-xl'
                       } backdrop-blur-sm`}
@@ -585,7 +774,7 @@ const App = () => {
                       </button>
 
                       <button
-                        onClick={() => deleteNote(note.id)}
+                        onClick={() => handleDeleteNote(note.id)}
                         className={`flex-1 px-3 py-2 text-xs rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${darkMode
                           ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-600/30'
                           : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
@@ -604,7 +793,7 @@ const App = () => {
 
                   {/* Back Side of Card - More Actions */}
                   <div
-                    className={`absolute inset-0 w-full h-full rounded-lg p-6 ${darkMode
+                    className={`absolute inset-0 w-full h-full rounded-3xl p-6 ${darkMode
                       ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-2xl'
                       : 'bg-gradient-to-br from-indigo-50 to-blue-50 border border-gray-200 shadow-xl'
                       } backdrop-blur-sm`}
@@ -631,18 +820,18 @@ const App = () => {
                       <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1" style={{ maxHeight: 'calc(100% - 60px)' }}>
                         <button
                           onClick={() => { openReadMode(note); setFlippedCard(null); }}
-                          className={`w-full 3 py-3 text-sm rounded-xl transition-all  flex items-center gap-3 ${darkMode
+                          className={`w-full px-4 py-3 text-sm rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-3 ${darkMode
                             ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30'
                             : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300'
                             }`}
                         >
-                          <span className="text-lg ml-2">👁️</span>
+                          <span className="text-lg">👁️</span>
                           <span className="font-medium">Read Mode</span>
                         </button>
 
                         <button
                           onClick={() => { togglePin(note.id); setFlippedCard(null); }}
-                          className={`w-full 3 py-3 text-sm rounded-xl transition-all  flex items-center gap-3 ${note.pinned
+                          className={`w-full px-4 py-3 text-sm rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-3 ${note.pinned
                             ? darkMode
                               ? 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30 border border-yellow-600/30'
                               : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-300'
@@ -651,18 +840,18 @@ const App = () => {
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300'
                             }`}
                         >
-                          <span className="text-lg ml-2">📌</span>
+                          <span className="text-lg">📌</span>
                           <span className="font-medium">{note.pinned ? 'Unpin Note' : 'Pin Note'}</span>
                         </button>
 
                         <button
                           onClick={() => { exportToPDF(note); setFlippedCard(null); }}
-                          className={`w-full 3 py-3 text-sm rounded-xl transition-all  flex items-center gap-3 ${darkMode
+                          className={`w-full px-4 py-3 text-sm rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-3 ${darkMode
                             ? 'bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-600/30'
                             : 'bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300'
                             }`}
                         >
-                          <span className="text-lg ml-2">📄</span>
+                          <span className="text-lg">📄</span>
                           <span className="font-medium">Export as PDF</span>
                         </button>
                       </div>
@@ -705,6 +894,7 @@ const App = () => {
             <div className="space-y-6">
               <input
                 type="text"
+                required
                 placeholder="Enter your note title..."
                 value={noteForm.title}
                 onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
@@ -716,6 +906,7 @@ const App = () => {
 
               <select
                 value={noteForm.categoryId}
+                required
                 onChange={(e) => setNoteForm({ ...noteForm, categoryId: e.target.value })}
                 className={`w-full px-6 py-4 rounded-2xl border-2 transition-all ${darkMode
                   ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400'
